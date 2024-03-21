@@ -23,11 +23,6 @@ df = pd.DataFrame(hist)
 print("\n##### COLUMNS #####\n")
 print(df.columns) # Printing the columns
 
-[head.lower() for head in df.columns] # list comprehension to lowercase column headers
-
-df.columns = [head.lower() for head in df.columns] # list comprehension to lowercase column headers
-
-# df.columns = [col.lstrip() if col.startswith(' ') else col for col in df.columns] # remove " " or if columnrow starts with empty space or underscore 
 
 print("\n##### HEAD #####\n")
 print(df.head(5)) # Exploring the data using the head method from pandas
@@ -38,16 +33,20 @@ print(df.tail(5))
 
 # Check for missing values
 missing_values = df.isnull().sum()
-print("Missing values:\n", missing_values)
-
+print("\nMissing values:\n", missing_values)
 
 # Check data types
 data_types = df.dtypes
-print("Data types:\n", data_types)
+print("\nData types:\n", data_types)
 
 # Check duplicate rows
 duplicate_rows = df.duplicated().sum()
-print("duplicate rows:", duplicate_rows)
+print("\nDuplicate rows:", duplicate_rows)
+
+
+df.columns = [head.lower() for head in df.columns] # list comprehension to lowercase column headers
+
+df.columns = [col.lstrip() if col.startswith(' ') else col for col in df.columns] # remove " " or if columnrow starts with empty space or underscore 
 
 # Visual inspection for outliers
 df['close'].plot() # inspecting the Closing price of the data
@@ -58,36 +57,47 @@ plt.show()
 
 # Export DataFrame to CSV locally
 try:
-    df.to_csv("aaple_stock_hist_6mo_20042024.csv", index=False)
+    df.to_csv("aaple_stock_hist_6mo_21032024.csv", index=False)
     print("dataframe succesfully exported\n")
-except:
-    print("dataframe unsuccesfully exported\n")
+except Exception as e:
+    print("unsuccessful export: {}".format(str(e)))
     print("Exiting program")
     exit()
 
 # Loads the dataframe to google bigquery, creates a dataset, schema and fills the table
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./cloud_demo_histeward.json" # credentials for authentication
 
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = './json_file_with_the_aut_key.json' # credentials for authentication
 
-# initialising BG client
+# initialising BQ client object to communicate with google cloud
 client = bigquery.Client()
 
-# create dataset_id to the ID of the dataset to create.
-dataset_id = "{}.aapl_stock_data".format(client.project)
+new_dataset = "aapl_stock_data"  # Name of dataset to create
 
-# Construct a full Dataset object to send to the API.
-dataset = bigquery.Dataset(dataset_id)
+# List existing datasets
+datasets = list(client.list_datasets())  # Make an API request.
 
-# specify the geographic location where the dataset should reside.
-dataset.location = "EU"
+if datasets:
+    print("Datasets in project {}:".format(client.project))
+    for dataset in datasets:
+        print("\t{}".format(dataset.dataset_id))
 
-# Send the dataset to the API for creation
-try:
-    dataset = client.create_dataset(dataset, timeout=30)  # Make an API request.
-    print("Created dataset {}.{}".format(client.project, dataset.dataset_id))
-except:
-    print("dataset exists already")
+    # Check if the new dataset already exists
+    if new_dataset in [dataset.dataset_id for dataset in datasets]:
+        print("\nDataset {} already exists.".format(new_dataset))
+    else:
+        # Create the new dataset
+        dataset_id = "{}.{}".format(client.project, new_dataset)
+        dataset = bigquery.Dataset(dataset_id)
+        dataset.location = "EU"
+        try:
+            dataset = client.create_dataset(dataset, timeout=30)  # Make an API request.
+            print("Created dataset {}.{}".format(client.project, dataset.dataset_id))
+        except Exception as e:
+            print("Failed to create dataset: {}".format(str(e)))
+else:
+    print("No datasets found in project {}.".format(client.project))
 
+# load data into bigquery
 table_id = "{}.aapl_stock_data.aaple_stock_hist_6mo-20042024".format(client.project)
 
 job_config = bigquery.LoadJobConfig(
@@ -95,7 +105,8 @@ job_config = bigquery.LoadJobConfig(
     skip_leading_rows=1,
     autodetect=True,
 )
-file = "./aaple_stock_hist_6mo_20042024.csv"
+
+file = "./aaple_stock_hist_6mo_21032024.csv"
 
 with open(file, "rb") as source_file:
     job = client.load_table_from_file(source_file, table_id, job_config=job_config)
