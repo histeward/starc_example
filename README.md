@@ -3,8 +3,7 @@
 ### About
 
 This document is just a simple example of fetching data from an api, explore
-it, check for necessary anomalies like missing values or outliers, then dumping
-it to a CSV file and loading it in a Bigquery data-warehouse.
+it, check for anomalies like missing values or outliers to fix them, then dumping the data to a CSV file and loading it in a Bigquery data-warehouse.
 
 ### Project requirements
 ```md
@@ -141,7 +140,7 @@ plt.xlabel("Date")
 plt.show()
 ```
 
-Now using to_csv() method from python I can dump the data into a csv file
+Now using to_csv() method from pandas I can dump the data into a csv file
 ```python
 # Export DataFrame to CSV locally
 try:
