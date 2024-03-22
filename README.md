@@ -4,9 +4,7 @@
 
 This document is just a simple example of fetching data from an api, explore
 it, check for necessary anomalies like missing values or outliers, then dumping
-it to a CSV file and loading it in a Bigquery data-warehouse. On an enterprise
-level if there are a lot of requirements it can take up weeks to build a full
-pipeline.
+it to a CSV file and loading it in a Bigquery data-warehouse.
 
 ### Project requirements
 ```md
